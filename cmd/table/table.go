@@ -59,7 +59,7 @@ func main() {
 
 	registeredServices := make(map[string]struct{})
 
-	_, stdio_pipe := fork_child(flag.Args())
+	pid, stdio_pipe := fork_child(flag.Args())
 	fp := os.NewFile(uintptr(stdio_pipe), "stdio_pipe")
 
 	fmt.Fprintf(fp, "config|smtpd-version|%s\n", TABLE_SMTPD_VERSION)
@@ -119,6 +119,7 @@ func main() {
 		fmt.Println(line)
 	}
 
+	syscall.Wait4(pid, nil, 0, nil)
 }
 
 func fork_child(args []string) (int, int) {
