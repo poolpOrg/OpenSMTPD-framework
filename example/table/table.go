@@ -7,7 +7,8 @@ import (
 func main() {
 	table.Init()
 
-	table.OnUpdate(func() {
+	table.OnUpdate(func() error {
+		return nil
 	})
 
 	table.OnCheck(table.K_ALIAS, func(key string) (bool, error) {
