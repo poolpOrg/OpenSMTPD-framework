@@ -23,11 +23,23 @@ func parseAddress(addr string) (net.Addr, error) {
 		return net.ResolveUnixAddr("unix", addr)
 	}
 
+	// Check if the address includes a port
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		// No port provided, use default port 80
+		addr = net.JoinHostPort(addr, "0")
+	} else {
+		// Use the original address as it includes a port
+		addr = net.JoinHostPort(host, port)
+	}
+
+	// Try to parse as a TCP address
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err == nil {
 		return tcpAddr, nil
 	}
-	return nil, fmt.Errorf("failed to parse as any known address type")
+
+	return nil, fmt.Errorf("failed to parse as any known address type: %s", err)
 }
 
 type Response interface {
@@ -568,7 +580,7 @@ func handleFilter(timestamp time.Time, event string, dir *filtering, sessionId s
 			return
 		}
 		if srcAddr, err := parseAddress(atoms[1]); err != nil {
-			log.Fatalf("Failed to parse source address %s", atoms[0])
+			log.Fatalf("Failed to parse source address %s", atoms[1])
 		} else {
 			res = dir.filterConnect(timestamp, sessionId, atoms[0], srcAddr)
 		}
