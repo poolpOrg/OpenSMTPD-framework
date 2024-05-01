@@ -85,8 +85,8 @@ func timeoutCb(timestamp time.Time, sessionId string) {
 	fmt.Fprintf(os.Stderr, "%s: %s: timeout\n", timestamp, sessionId)
 }
 
-func filterConnectCb(timestamp time.Time, sessionId string, rdns string, fcrdns string, src net.Addr, dest net.Addr) filter.Response {
-	fmt.Fprintf(os.Stderr, "%s: %s: filter-connect: %s|%s|%s|%s\n", timestamp, sessionId, rdns, fcrdns, src, dest)
+func filterConnectCb(timestamp time.Time, sessionId string, rdns string, src net.Addr) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-connect: %s|%s|%s|%s\n", timestamp, sessionId, rdns, src)
 	return filter.Proceed()
 }
 

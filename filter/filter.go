@@ -96,7 +96,7 @@ type FilterResponseCb func(timestamp time.Time, sessionId string, phase string, 
 
 type TimeoutCb func(timestamp time.Time, sessionId string)
 
-type ConnectRequestCb func(timestamp time.Time, sessionId string, rdns string, fcrdns string, src net.Addr, dest net.Addr) Response
+type ConnectRequestCb func(timestamp time.Time, sessionId string, rdns string, src net.Addr) Response
 type HeloRequestCb func(timestamp time.Time, sessionId string, helo string) Response
 type EhloRequestCb func(timestamp time.Time, sessionId string, ehlo string) Response
 type StartTLSRequestCb func(timestamp time.Time, sessionId string, tlsString string) Response
@@ -567,12 +567,10 @@ func handleFilter(timestamp time.Time, event string, dir *filtering, sessionId s
 		if dir.filterConnect == nil {
 			return
 		}
-		if srcAddr, err := parseAddress(atoms[2]); err != nil {
-			log.Fatalf("Failed to parse source address %s", atoms[2])
-		} else if destAddr, err := parseAddress(atoms[3]); err != nil {
-			log.Fatalf("Failed to parse destination address %s", atoms[3])
+		if srcAddr, err := parseAddress(atoms[0]); err != nil {
+			log.Fatalf("Failed to parse source address %s", atoms[0])
 		} else {
-			res = dir.filterConnect(timestamp, sessionId, atoms[0], atoms[1], srcAddr, destAddr)
+			res = dir.filterConnect(timestamp, sessionId, atoms[0], srcAddr)
 		}
 
 	case "helo":
@@ -740,6 +738,7 @@ func Dispatch() {
 				log.Fatalf("Unknown direction %s", eventDirection)
 			}
 			direction = &SMTP_IN.filtering
+			fmt.Fprintf(os.Stderr, "atoms: %s\n", atoms)
 			handleFilter(timestampToTime(timestamp), eventKind, direction, eventSessionId, atoms)
 		} else {
 			log.Fatalf("Unknown command %s", eventType)
