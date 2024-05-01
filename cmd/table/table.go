@@ -5,8 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
-	"syscall"
+	"os/exec"
 	"time"
 )
 
@@ -59,15 +58,27 @@ func main() {
 
 	registeredServices := make(map[string]struct{})
 
-	pid, stdio_pipe := fork_child(flag.Args())
-	fp := os.NewFile(uintptr(stdio_pipe), "stdio_pipe")
+	args := flag.Args()
 
-	fmt.Fprintf(fp, "config|smtpd-version|%s\n", TABLE_SMTPD_VERSION)
-	fmt.Fprintf(fp, "config|protocol|%s\n", TABLE_PROTOCOL_VERSION)
-	fmt.Fprintf(fp, "config|ready\n")
-	fp.Sync()
+	cmd := exec.Command(args[0], args[1:]...)
+	in, err := cmd.StdinPipe()
+	if err != nil {
+		log.Fatal(err)
+	}
+	out, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	scanner := bufio.NewScanner(fp)
+	if err := cmd.Start(); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Fprintf(in, "config|smtpd-version|%s\n", TABLE_SMTPD_VERSION)
+	fmt.Fprintf(in, "config|protocol|%s\n", TABLE_PROTOCOL_VERSION)
+	fmt.Fprintf(in, "config|ready\n")
+
+	scanner := bufio.NewScanner(out)
 	for {
 		if !scanner.Scan() {
 			log.Fatal("scanner.Scan() failed")
@@ -87,8 +98,7 @@ func main() {
 	}
 
 	if opt_fetch {
-		fmt.Fprintf(fp, "table|%s|%d|%s|fetch|%s|%s\n", TABLE_PROTOCOL_VERSION, time.Now().Unix(), opt_table, opt_service, "deadbeefabadf00d")
-		fp.Sync()
+		fmt.Fprintf(in, "table|%s|%d|%s|fetch|%s|%s\n", TABLE_PROTOCOL_VERSION, time.Now().Unix(), opt_table, opt_service, "deadbeefabadf00d")
 
 		if !scanner.Scan() {
 			log.Fatal("scanner.Scan() failed")
@@ -98,8 +108,7 @@ func main() {
 	}
 
 	if opt_lookup != "" {
-		fmt.Fprintf(fp, "table|%s|%d|%s|lookup|%s|%s|%s\n", TABLE_PROTOCOL_VERSION, time.Now().Unix(), opt_table, opt_service, "deadbeefabadf00d", opt_lookup)
-		fp.Sync()
+		fmt.Fprintf(in, "table|%s|%d|%s|lookup|%s|%s|%s\n", TABLE_PROTOCOL_VERSION, time.Now().Unix(), opt_table, opt_service, "deadbeefabadf00d", opt_lookup)
 
 		if !scanner.Scan() {
 			log.Fatal("scanner.Scan() failed")
@@ -109,8 +118,7 @@ func main() {
 	}
 
 	if opt_check != "" {
-		fmt.Fprintf(fp, "table|%s|%d|%s|check|%s|%s|%s\n", TABLE_PROTOCOL_VERSION, time.Now().Unix(), opt_table, opt_service, "deadbeefabadf00d", opt_lookup)
-		fp.Sync()
+		fmt.Fprintf(in, "table|%s|%d|%s|check|%s|%s|%s\n", TABLE_PROTOCOL_VERSION, time.Now().Unix(), opt_table, opt_service, "deadbeefabadf00d", opt_lookup)
 
 		if !scanner.Scan() {
 			log.Fatal("scanner.Scan() failed")
@@ -119,36 +127,9 @@ func main() {
 		fmt.Println(line)
 	}
 
-	syscall.Wait4(pid, nil, 0, nil)
-}
-
-func fork_child(args []string) (int, int) {
-	sp, err := syscall.Socketpair(syscall.AF_LOCAL, syscall.SOCK_STREAM, syscall.AF_UNSPEC)
-	if err != nil {
+	in.Close()
+	out.Close()
+	if err := cmd.Wait(); err != nil {
 		log.Fatal(err)
 	}
-
-	// XXX - not quite there yet
-	//syscall.SetNonblock(sp[0], true)
-	//syscall.SetNonblock(sp[1], true)
-
-	procAttr := syscall.ProcAttr{}
-	procAttr.Files = []uintptr{
-		uintptr(sp[0]),
-		uintptr(sp[0]),
-		uintptr(syscall.Stderr),
-	}
-
-	var pid int
-
-	pid, err = syscall.ForkExec(args[0], args, &procAttr)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if syscall.Close(sp[0]) != nil {
-		log.Fatal(err)
-	}
-
-	return pid, sp[1]
 }
