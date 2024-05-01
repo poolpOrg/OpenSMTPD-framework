@@ -93,6 +93,151 @@ type DataRequestCb func(timestamp time.Time, sessionId string) Response
 type DataLineRequestCb func(timestamp time.Time, sessionId string, line string) []string
 type CommitRequestCb func(timestamp time.Time, sessionId string) Response
 
+type reporting struct {
+	linkConnect    LinkConnectCb
+	linkGreeting   LinkGreetingCb
+	linkIdentify   LinkIdentifyCb
+	linkTLS        LinkTLSCb
+	linkAuth       LinkAuthCb
+	linkDisconnect LinkDisconnectCb
+
+	txReset    TxResetCb
+	txBegin    TxBeginCb
+	txMail     TxMailCb
+	txRcpt     TxRcptCb
+	txEnvelope TxEnvelopeCb
+	txData     TxDataCb
+	txCommit   TxCommitCb
+	txRollback TxRollbackCb
+
+	protocolClient ProtocolClientCb
+	protocolServer ProtocolServerCb
+
+	filterReport   FilterReportCb
+	filterResponse FilterResponseCb
+
+	timeout TimeoutCb
+}
+
+func (r *reporting) reportEvents() []string {
+	ret := make([]string, 0)
+	if r.linkConnect != nil {
+		ret = append(ret, "link-connect")
+	}
+	if r.linkGreeting != nil {
+		ret = append(ret, "link-greeting")
+	}
+	if r.linkIdentify != nil {
+		ret = append(ret, "link-identify")
+	}
+	if r.linkTLS != nil {
+		ret = append(ret, "link-tls")
+	}
+	if r.linkAuth != nil {
+		ret = append(ret, "link-auth")
+	}
+	if r.linkDisconnect != nil {
+		ret = append(ret, "link-disconnect")
+	}
+	if r.txReset != nil {
+		ret = append(ret, "tx-reset")
+	}
+	if r.txBegin != nil {
+		ret = append(ret, "tx-begin")
+	}
+	if r.txMail != nil {
+		ret = append(ret, "tx-mail")
+	}
+	if r.txRcpt != nil {
+		ret = append(ret, "tx-rcpt")
+	}
+	if r.txEnvelope != nil {
+		ret = append(ret, "tx-envelope")
+	}
+	if r.txData != nil {
+		ret = append(ret, "tx-data")
+	}
+	if r.txCommit != nil {
+		ret = append(ret, "tx-commit")
+	}
+	if r.txRollback != nil {
+		ret = append(ret, "tx-rollback")
+	}
+	if r.protocolClient != nil {
+		ret = append(ret, "protocol-client")
+	}
+	if r.protocolServer != nil {
+		ret = append(ret, "protocol-server")
+	}
+	if r.filterReport != nil {
+		ret = append(ret, "filter-report")
+	}
+	if r.filterResponse != nil {
+		ret = append(ret, "filter-response")
+	}
+	if r.timeout != nil {
+		ret = append(ret, "timeout")
+	}
+	return ret
+}
+
+type filtering struct {
+	filterConnect  ConnectRequestCb
+	filterHelo     HeloRequestCb
+	filterEhlo     EhloRequestCb
+	filterStartTLS StartTLSRequestCb
+	filterAuth     AuthRequestCb
+	filterMailFrom MailFromRequestCb
+	filterRcptTo   RcptToRequestCb
+	filterData     DataRequestCb
+	filterDataLine DataLineRequestCb
+	filterCommit   CommitRequestCb
+}
+
+func (f *filtering) filterEvents() []string {
+	ret := make([]string, 0)
+	if f.filterConnect != nil {
+		ret = append(ret, "connect")
+	}
+	if f.filterHelo != nil {
+		ret = append(ret, "helo")
+	}
+	if f.filterEhlo != nil {
+		ret = append(ret, "ehlo")
+	}
+	if f.filterStartTLS != nil {
+		ret = append(ret, "starttls")
+	}
+	if f.filterAuth != nil {
+		ret = append(ret, "auth")
+	}
+	if f.filterMailFrom != nil {
+		ret = append(ret, "mail-from")
+	}
+	if f.filterRcptTo != nil {
+		ret = append(ret, "rcpt-to")
+	}
+	if f.filterData != nil {
+		ret = append(ret, "data")
+	}
+	if f.filterDataLine != nil {
+		ret = append(ret, "data-line")
+	}
+	if f.filterCommit != nil {
+		ret = append(ret, "commit")
+	}
+	return ret
+}
+
+type smtpIn struct {
+	reporting
+	filtering
+}
+
+type smtpOut struct {
+	reporting
+}
+
 type direction struct {
 	linkConnect    LinkConnectCb
 	linkGreeting   LinkGreetingCb
@@ -131,191 +276,129 @@ type direction struct {
 	filterCommit   CommitRequestCb
 }
 
-func (d *direction) registeredReportEvents() []string {
-	ret := make([]string, 0)
-	if d.linkConnect != nil {
-		ret = append(ret, "link-connect")
-	}
-	if d.linkGreeting != nil {
-		ret = append(ret, "link-greeting")
-	}
-	if d.linkIdentify != nil {
-		ret = append(ret, "link-identify")
-	}
-	if d.linkTLS != nil {
-		ret = append(ret, "link-tls")
-	}
-	if d.linkAuth != nil {
-		ret = append(ret, "link-auth")
-	}
-	if d.linkDisconnect != nil {
-		ret = append(ret, "link-disconnect")
-	}
-	if d.txReset != nil {
-		ret = append(ret, "tx-reset")
-	}
-	if d.txBegin != nil {
-		ret = append(ret, "tx-begin")
-	}
-	if d.txMail != nil {
-		ret = append(ret, "tx-mail")
-	}
-	if d.txRcpt != nil {
-		ret = append(ret, "tx-rcpt")
-	}
-	if d.txEnvelope != nil {
-		ret = append(ret, "tx-envelope")
-	}
-	if d.txData != nil {
-		ret = append(ret, "tx-data")
-	}
-	if d.txCommit != nil {
-		ret = append(ret, "tx-commit")
-	}
-	if d.txRollback != nil {
-		ret = append(ret, "tx-rollback")
-	}
-	if d.protocolClient != nil {
-		ret = append(ret, "protocol-client")
-	}
-	if d.protocolServer != nil {
-		ret = append(ret, "protocol-server")
-	}
-	if d.filterReport != nil {
-		ret = append(ret, "filter-report")
-	}
-	if d.filterResponse != nil {
-		ret = append(ret, "filter-response")
-	}
-	if d.timeout != nil {
-		ret = append(ret, "timeout")
-	}
-	return ret
-}
-
-var SMTP_IN = &direction{}
-var SMTP_OUT = &direction{}
+var SMTP_IN = &smtpIn{}
+var SMTP_OUT = &smtpOut{}
 
 func Init() {
 }
 
-func (d *direction) OnLinkConnect(cb LinkConnectCb) {
-	d.linkConnect = cb
+func (r *reporting) OnLinkConnect(cb LinkConnectCb) {
+	r.linkConnect = cb
 }
 
-func (d *direction) OnLinkDisconnect(cb LinkDisconnectCb) {
-	d.linkDisconnect = cb
+func (r *reporting) OnLinkDisconnect(cb LinkDisconnectCb) {
+	r.linkDisconnect = cb
 }
 
-func (d *direction) OnLinkGreeting(cb LinkGreetingCb) {
-	d.linkGreeting = cb
+func (r *reporting) OnLinkGreeting(cb LinkGreetingCb) {
+	r.linkGreeting = cb
 }
 
-func (d *direction) OnLinkIdentify(cb LinkIdentifyCb) {
-	d.linkIdentify = cb
+func (r *reporting) OnLinkIdentify(cb LinkIdentifyCb) {
+	r.linkIdentify = cb
 }
 
-func (d *direction) OnLinkAuth(cb LinkAuthCb) {
-	d.linkAuth = cb
+func (r *reporting) OnLinkAuth(cb LinkAuthCb) {
+	r.linkAuth = cb
 }
 
-func (d *direction) OnLinkTLS(cb LinkTLSCb) {
-	d.linkTLS = cb
+func (r *reporting) OnLinkTLS(cb LinkTLSCb) {
+	r.linkTLS = cb
 }
 
-func (d *direction) OnTxReset(cb TxResetCb) {
-	d.txReset = cb
+func (r *reporting) OnTxReset(cb TxResetCb) {
+	r.txReset = cb
 }
 
-func (d *direction) OnTxBegin(cb TxBeginCb) {
-	d.txBegin = cb
+func (r *reporting) OnTxBegin(cb TxBeginCb) {
+	r.txBegin = cb
 }
 
-func (d *direction) OnTxMail(cb TxMailCb) {
-	d.txMail = cb
+func (r *reporting) OnTxMail(cb TxMailCb) {
+	r.txMail = cb
 }
 
-func (d *direction) OnTxRcpt(cb TxRcptCb) {
-	d.txRcpt = cb
+func (r *reporting) OnTxRcpt(cb TxRcptCb) {
+	r.txRcpt = cb
 }
 
-func (d *direction) OnTxEnvelope(cb TxEnvelopeCb) {
-	d.txEnvelope = cb
+func (r *reporting) OnTxEnvelope(cb TxEnvelopeCb) {
+	r.txEnvelope = cb
 }
 
-func (d *direction) OnTxData(cb TxDataCb) {
-	d.txData = cb
+func (r *reporting) OnTxData(cb TxDataCb) {
+	r.txData = cb
 }
 
-func (d *direction) OnTxCommit(cb TxCommitCb) {
-	d.txCommit = cb
+func (r *reporting) OnTxCommit(cb TxCommitCb) {
+	r.txCommit = cb
 }
 
-func (d *direction) OnTxRollback(cb TxRollbackCb) {
-	d.txRollback = cb
+func (r *reporting) OnTxRollback(cb TxRollbackCb) {
+	r.txRollback = cb
 }
 
-func (d *direction) OnProtocolClient(cb ProtocolClientCb) {
-	d.protocolClient = cb
+func (r *reporting) OnProtocolClient(cb ProtocolClientCb) {
+	r.protocolClient = cb
 }
 
-func (d *direction) OnProtocolServer(cb ProtocolServerCb) {
-	d.protocolServer = cb
+func (r *reporting) OnProtocolServer(cb ProtocolServerCb) {
+	r.protocolServer = cb
 }
 
-func (d *direction) OnFilterReport(cb FilterReportCb) {
-	d.filterReport = cb
+func (r *reporting) OnFilterReport(cb FilterReportCb) {
+	r.filterReport = cb
 }
 
-func (d *direction) OnFilterResponse(cb FilterResponseCb) {
-	d.filterResponse = cb
+func (r *reporting) OnFilterResponse(cb FilterResponseCb) {
+	r.filterResponse = cb
 }
 
-func (d *direction) OnTimeout(cb TimeoutCb) {
-	d.timeout = cb
+func (r *reporting) OnTimeout(cb TimeoutCb) {
+	r.timeout = cb
 }
 
-func (d *direction) ConnectRequest(cb ConnectRequestCb) {
-	d.filterConnect = cb
+func (f *filtering) ConnectRequest(cb ConnectRequestCb) {
+	f.filterConnect = cb
 }
 
-func (d *direction) HeloRequest(cb HeloRequestCb) {
-	d.filterHelo = cb
+func (f *filtering) HeloRequest(cb HeloRequestCb) {
+	f.filterHelo = cb
 }
 
-func (d *direction) EhloRequest(cb EhloRequestCb) {
-	d.filterEhlo = cb
+func (f *filtering) EhloRequest(cb EhloRequestCb) {
+	f.filterEhlo = cb
 }
 
-func (d *direction) StartTLSRequest(cb StartTLSRequestCb) {
-	d.filterStartTLS = cb
+func (f *filtering) StartTLSRequest(cb StartTLSRequestCb) {
+	f.filterStartTLS = cb
 }
 
-func (d *direction) AuthRequest(cb AuthRequestCb) {
-	d.filterAuth = cb
+func (f *filtering) AuthRequest(cb AuthRequestCb) {
+	f.filterAuth = cb
 }
 
-func (d *direction) MailFromRequest(cb MailFromRequestCb) {
-	d.filterMailFrom = cb
+func (f *filtering) MailFromRequest(cb MailFromRequestCb) {
+	f.filterMailFrom = cb
 }
 
-func (d *direction) RcptToRequest(cb RcptToRequestCb) {
-	d.filterRcptTo = cb
+func (f *filtering) RcptToRequest(cb RcptToRequestCb) {
+	f.filterRcptTo = cb
 }
 
-func (d *direction) DataRequest(cb DataRequestCb) {
-	d.filterData = cb
+func (f *filtering) DataRequest(cb DataRequestCb) {
+	f.filterData = cb
 }
 
-func (d *direction) DataLineRequest(cb DataLineRequestCb) {
-	d.filterDataLine = cb
+func (f *filtering) DataLineRequest(cb DataLineRequestCb) {
+	f.filterDataLine = cb
 }
 
-func (d *direction) CommitRequest(cb CommitRequestCb) {
-	d.filterCommit = cb
+func (f *filtering) CommitRequest(cb CommitRequestCb) {
+	f.filterCommit = cb
 }
 
-func handleReport(timestamp time.Time, event string, dir *direction, sessionId string, atoms []string) {
+func handleReport(timestamp time.Time, event string, dir *reporting, sessionId string, atoms []string) {
 	switch event {
 	case "link-connect":
 		if dir.linkConnect == nil {
@@ -441,7 +524,7 @@ func handleReport(timestamp time.Time, event string, dir *direction, sessionId s
 	}
 }
 
-func handleFilter(timestamp time.Time, event string, dir *direction, sessionId string, atoms []string) {
+func handleFilter(timestamp time.Time, event string, dir *filtering, sessionId string, atoms []string) {
 	var res Response
 
 	opaqueValue := atoms[0]
@@ -552,11 +635,14 @@ func Dispatch() {
 	}
 
 	// table registration
-	for _, event := range SMTP_IN.registeredReportEvents() {
+	for _, event := range SMTP_IN.reportEvents() {
 		fmt.Fprintf(os.Stdout, "register|report|smtp-in|%s\n", event)
 	}
-	for _, event := range SMTP_OUT.registeredReportEvents() {
+	for _, event := range SMTP_OUT.reportEvents() {
 		fmt.Fprintf(os.Stdout, "register|report|smtp-out|%s\n", event)
+	}
+	for _, event := range SMTP_IN.filterEvents() {
+		fmt.Fprintf(os.Stdout, "register|filter|smtp-in|%s\n", event)
 	}
 	fmt.Println("register|ready")
 
@@ -587,12 +673,7 @@ func Dispatch() {
 		}
 
 		eventDirection := atoms[3]
-		var eventDirectionPtr *direction
-		if eventDirection == "smtp-in" {
-			eventDirectionPtr = SMTP_IN
-		} else if eventDirection == "smtp-out" {
-			eventDirectionPtr = SMTP_OUT
-		} else {
+		if eventDirection != "smtp-in" && eventDirection != "smtp-out" {
 			log.Fatalf("Unknown direction %s", eventDirection)
 		}
 
@@ -608,9 +689,20 @@ func Dispatch() {
 		atoms = atoms[6:]
 
 		if eventType == "report" {
-			handleReport(timestampToTime(timestamp), eventKind, eventDirectionPtr, eventSessionId, atoms)
+			var direction *reporting
+			if eventDirection == "smtp-in" {
+				direction = &SMTP_IN.reporting
+			} else if eventDirection == "smtp-out" {
+				direction = &SMTP_OUT.reporting
+			}
+			handleReport(timestampToTime(timestamp), eventKind, direction, eventSessionId, atoms)
 		} else if eventType == "filter" {
-			handleFilter(timestampToTime(timestamp), eventKind, eventDirectionPtr, eventSessionId, atoms)
+			var direction *filtering
+			if eventDirection != "smtp-in" {
+				log.Fatalf("Unknown direction %s", eventDirection)
+			}
+			direction = &SMTP_IN.filtering
+			handleFilter(timestampToTime(timestamp), eventKind, direction, eventSessionId, atoms)
 		} else {
 			log.Fatalf("Unknown command %s", eventType)
 		}
@@ -621,3 +713,8 @@ func Dispatch() {
 
 //report|0.7|1576146008.006099|smtp-in|link-connect|7641df9771b4ed00|mail.openbsd.org|pass|199.185.178.25:33174|45.77.67.80:25
 //filter|0.7|1576146008.006099|smtp-in|connect|7641df9771b4ed00|1ef1c203cc576e5d|mail.openbsd.org|pass|199.185.178.25:33174|45.77.67.80:25
+/*
+filter|0.7|1576146008.006099|smtp-in|data-line|7641df9771b4ed00|1ef1c203cc576e5d|line 1
+filter|0.7|1576146008.006103|smtp-in|data-line|7641df9771b4ed00|1ef1c203cc576e5d|line 2
+filter|0.7|1576146008.006105|smtp-in|data-line|7641df9771b4ed00|1ef1c203cc576e5d|.
+*/
