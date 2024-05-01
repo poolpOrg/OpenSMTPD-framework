@@ -567,7 +567,7 @@ func handleFilter(timestamp time.Time, event string, dir *filtering, sessionId s
 		if dir.filterConnect == nil {
 			return
 		}
-		if srcAddr, err := parseAddress(atoms[0]); err != nil {
+		if srcAddr, err := parseAddress(atoms[1]); err != nil {
 			log.Fatalf("Failed to parse source address %s", atoms[0])
 		} else {
 			res = dir.filterConnect(timestamp, sessionId, atoms[0], srcAddr)
