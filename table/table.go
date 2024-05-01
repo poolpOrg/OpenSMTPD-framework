@@ -75,12 +75,12 @@ func serviceFromName(name string) Service {
 	return K_ERROR
 }
 
-var onUpdateCb func() = nil
-
+type onUpdateCb func() error
 type onCheckCb func(string) (bool, error)
 type onLookupCb func(string) (string, error)
 type onFetchCb func() (string, error)
 
+var onUpdate onUpdateCb
 var onCheckMap map[Service]onCheckCb = make(map[Service]onCheckCb)
 var onLookupMap map[Service]onLookupCb = make(map[Service]onLookupCb)
 var onFetchMap map[Service]onFetchCb = make(map[Service]onFetchCb)
@@ -88,8 +88,8 @@ var onFetchMap map[Service]onFetchCb = make(map[Service]onFetchCb)
 func Init() {
 }
 
-func OnUpdate(cb func()) {
-	onUpdateCb = cb
+func OnUpdate(cb onUpdateCb) {
+	onUpdate = cb
 }
 
 func OnCheck(service Service, cb onCheckCb) {
@@ -176,11 +176,14 @@ func Dispatch() {
 
 		switch operation {
 		case "update":
-			if onUpdateCb != nil {
+			if onUpdate != nil {
 				opaque := atoms[0]
 				go func() {
-					onUpdateCb()
-					fmt.Fprintf(os.Stdout, "update-result|%s|ok\n", opaque)
+					if err := onUpdate(); err != nil {
+						fmt.Fprintf(os.Stdout, "update-result|%s|ko\n", opaque)
+					} else {
+						fmt.Fprintf(os.Stdout, "update-result|%s|ok\n", opaque)
+					}
 				}()
 			}
 
