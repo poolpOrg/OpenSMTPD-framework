@@ -413,10 +413,16 @@ func (f *filtering) CommitRequest(cb CommitRequestCb) {
 }
 
 func handleReport(timestamp time.Time, event string, dir *reporting, sessionId string, atoms []string) {
+
+	// XXX - need to ensure atoms is properly parsed (last field may be split multiple times)
+
 	switch event {
 	case "link-connect":
 		if dir.linkConnect == nil {
 			return
+		}
+		if len(atoms) != 4 {
+			log.Fatalf("Invalid input, not enough fields: %s", atoms)
 		}
 		if srcAddr, err := parseAddress(atoms[2]); err != nil {
 			log.Fatalf("Failed to parse source address %s", atoms[2])
@@ -430,11 +436,17 @@ func handleReport(timestamp time.Time, event string, dir *reporting, sessionId s
 		if dir.linkDisconnect == nil {
 			return
 		}
+		if len(atoms) != 0 {
+			log.Fatalf("Invalid input, too many fields: %s", atoms)
+		}
 		dir.linkDisconnect(timestamp, sessionId)
 
 	case "link-greeting":
 		if dir.linkGreeting == nil {
 			return
+		}
+		if len(atoms) != 1 {
+			log.Fatalf("Invalid input, expects only one field: %s", atoms)
 		}
 		dir.linkGreeting(timestamp, sessionId, atoms[0])
 
@@ -513,13 +525,13 @@ func handleReport(timestamp time.Time, event string, dir *reporting, sessionId s
 		if dir.protocolClient == nil {
 			return
 		}
-		dir.protocolClient(timestamp, sessionId, atoms[0])
+		dir.protocolClient(timestamp, sessionId, strings.Join(atoms, "|"))
 
 	case "protocol-server":
 		if dir.protocolServer == nil {
 			return
 		}
-		dir.protocolServer(timestamp, sessionId, atoms[0])
+		dir.protocolServer(timestamp, sessionId, strings.Join(atoms, "|"))
 
 	case "filter-report":
 		if dir.filterReport == nil {
@@ -546,6 +558,8 @@ func handleReport(timestamp time.Time, event string, dir *reporting, sessionId s
 
 func handleFilter(timestamp time.Time, event string, dir *filtering, sessionId string, atoms []string) {
 	var res Response
+
+	// XXX - need to ensure atoms is properly parsed (last field may be split multiple times)
 
 	opaqueValue := atoms[0]
 
