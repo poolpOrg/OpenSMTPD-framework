@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"time"
 
 	"github.com/poolpOrg/OpenSMTPD-framework/filter"
 )
 
-func linkConnectCb(timestamp time.Time, sessionId string, rdns string, fcrdns string, src string, dest string) {
+func linkConnectCb(timestamp time.Time, sessionId string, rdns string, fcrdns string, src net.Addr, dest net.Addr) {
 	fmt.Fprintf(os.Stderr, "%s: %s: link-connect: %s|%s|%s|%s\n", timestamp, sessionId, rdns, fcrdns, src, dest)
 }
 
@@ -84,7 +85,7 @@ func timeoutCb(timestamp time.Time, sessionId string) {
 	fmt.Fprintf(os.Stderr, "%s: %s: timeout\n", timestamp, sessionId)
 }
 
-func filterConnectCb(timestamp time.Time, sessionId string, rdns string, fcrdns string, src string, dest string) filter.Response {
+func filterConnectCb(timestamp time.Time, sessionId string, rdns string, fcrdns string, src net.Addr, dest net.Addr) filter.Response {
 	fmt.Fprintf(os.Stderr, "%s: %s: filter-connect: %s|%s|%s|%s\n", timestamp, sessionId, rdns, fcrdns, src, dest)
 	return filter.Proceed()
 }

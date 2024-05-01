@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -14,6 +15,19 @@ func timestampToTime(timestamp float64) time.Time {
 	sec := int64(timestamp)
 	nsec := int64((timestamp - float64(sec)) * 1e9)
 	return time.Unix(sec, nsec)
+}
+
+func parseAddress(addr string) (net.Addr, error) {
+	if strings.Contains(addr, "/") {
+		// Unix domain socket
+		return net.ResolveUnixAddr("unix", addr)
+	}
+
+	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
+	if err == nil {
+		return tcpAddr, nil
+	}
+	return nil, fmt.Errorf("failed to parse as any known address type")
 }
 
 type Response interface {
@@ -58,7 +72,7 @@ func Report(parameter string) Response {
 	return report{parameter: parameter}
 }
 
-type LinkConnectCb func(timestamp time.Time, sessionId string, rdns string, fcrdns string, src string, dest string)
+type LinkConnectCb func(timestamp time.Time, sessionId string, rdns string, fcrdns string, src net.Addr, dest net.Addr)
 type LinkGreetingCb func(timestamp time.Time, sessionId string, hostname string)
 type LinkIdentifyCb func(timestamp time.Time, sessionId string, method string, hostname string)
 type LinkTLSCb func(timestamp time.Time, sessionId string, tlsString string)
@@ -82,7 +96,7 @@ type FilterResponseCb func(timestamp time.Time, sessionId string, phase string, 
 
 type TimeoutCb func(timestamp time.Time, sessionId string)
 
-type ConnectRequestCb func(timestamp time.Time, sessionId string, rdns string, fcrdns string, src string, dest string) Response
+type ConnectRequestCb func(timestamp time.Time, sessionId string, rdns string, fcrdns string, src net.Addr, dest net.Addr) Response
 type HeloRequestCb func(timestamp time.Time, sessionId string, helo string) Response
 type EhloRequestCb func(timestamp time.Time, sessionId string, ehlo string) Response
 type StartTLSRequestCb func(timestamp time.Time, sessionId string, tlsString string) Response
@@ -404,7 +418,13 @@ func handleReport(timestamp time.Time, event string, dir *reporting, sessionId s
 		if dir.linkConnect == nil {
 			return
 		}
-		dir.linkConnect(timestamp, sessionId, atoms[0], atoms[1], atoms[2], atoms[3])
+		if srcAddr, err := parseAddress(atoms[2]); err != nil {
+			log.Fatalf("Failed to parse source address %s", atoms[2])
+		} else if destAddr, err := parseAddress(atoms[3]); err != nil {
+			log.Fatalf("Failed to parse destination address %s", atoms[3])
+		} else {
+			dir.linkConnect(timestamp, sessionId, atoms[0], atoms[1], srcAddr, destAddr)
+		}
 
 	case "link-disconnect":
 		if dir.linkDisconnect == nil {
@@ -535,7 +555,13 @@ func handleFilter(timestamp time.Time, event string, dir *filtering, sessionId s
 		if dir.filterConnect == nil {
 			return
 		}
-		res = dir.filterConnect(timestamp, sessionId, atoms[0], atoms[1], atoms[2], atoms[3])
+		if srcAddr, err := parseAddress(atoms[2]); err != nil {
+			log.Fatalf("Failed to parse source address %s", atoms[2])
+		} else if destAddr, err := parseAddress(atoms[3]); err != nil {
+			log.Fatalf("Failed to parse destination address %s", atoms[3])
+		} else {
+			res = dir.filterConnect(timestamp, sessionId, atoms[0], atoms[1], srcAddr, destAddr)
+		}
 
 	case "helo":
 		if dir.filterHelo == nil {
