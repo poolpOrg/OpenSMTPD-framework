@@ -560,10 +560,8 @@ func handleFilter(timestamp time.Time, event string, dir *filtering, sessionId s
 	var res Response
 
 	// XXX - need to ensure atoms is properly parsed (last field may be split multiple times)
+	opaqueValue, atoms := atoms[0], atoms[1:]
 
-	opaqueValue := atoms[0]
-
-	atoms = atoms[1:]
 	switch event {
 	case "connect":
 		if dir.filterConnect == nil {
@@ -624,7 +622,7 @@ func handleFilter(timestamp time.Time, event string, dir *filtering, sessionId s
 			return
 		}
 		// data line has special handling
-		lines := dir.filterDataLine(timestamp, sessionId, atoms[0])
+		lines := dir.filterDataLine(timestamp, sessionId, strings.Join(atoms, "|"))
 		for _, line := range lines {
 			fmt.Fprintf(os.Stdout, "filter-dataline|%s|%s|%s\n", sessionId, opaqueValue, line)
 		}
