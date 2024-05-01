@@ -10,22 +10,6 @@ import (
 	"time"
 )
 
-type Hook int
-
-const (
-	HOOK_LINK_CONNECT Hook = 0
-)
-
-func (h Hook) String() string {
-	switch h {
-	case HOOK_LINK_CONNECT:
-		return "link-connect"
-	default:
-		log.Fatalf("Unknown hook %d", h)
-	}
-	return ""
-}
-
 func timestampToTime(timestamp float64) time.Time {
 	sec := int64(timestamp)
 	nsec := int64((timestamp - float64(sec)) * 1e9)
