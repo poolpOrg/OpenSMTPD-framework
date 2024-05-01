@@ -16,6 +16,48 @@ func timestampToTime(timestamp float64) time.Time {
 	return time.Unix(sec, nsec)
 }
 
+type Response interface {
+	_x()
+}
+
+type proceed struct{}
+type junk struct{}
+type reject struct{ errorMsg string }
+type disconnect struct{ errorMsg string }
+type rewrite struct{ parameter string }
+type report struct{ parameter string }
+
+func (f proceed) _x()    {}
+func (f junk) _x()       {}
+func (f reject) _x()     {}
+func (f disconnect) _x() {}
+func (f rewrite) _x()    {}
+func (f report) _x()     {}
+
+func Proceed() Response {
+	return proceed{}
+}
+
+func Junk() Response {
+	return junk{}
+}
+
+func Reject(errorMsg string) Response {
+	return reject{errorMsg: errorMsg}
+}
+
+func Disconnect(errorMsg string) Response {
+	return disconnect{errorMsg: errorMsg}
+}
+
+func Rewrite(parameter string) Response {
+	return rewrite{parameter: parameter}
+}
+
+func Report(parameter string) Response {
+	return report{parameter: parameter}
+}
+
 type LinkConnectCb func(timestamp time.Time, sessionId string, rdns string, fcrdns string, src string, dest string)
 type LinkGreetingCb func(timestamp time.Time, sessionId string, hostname string)
 type LinkIdentifyCb func(timestamp time.Time, sessionId string, method string, hostname string)
@@ -39,6 +81,17 @@ type FilterReportCb func(timestamp time.Time, sessionId string, filterKind strin
 type FilterResponseCb func(timestamp time.Time, sessionId string, phase string, response string, param ...string)
 
 type TimeoutCb func(timestamp time.Time, sessionId string)
+
+type ConnectRequestCb func(timestamp time.Time, sessionId string, rdns string, fcrdns string, src string, dest string) Response
+type HeloRequestCb func(timestamp time.Time, sessionId string, helo string) Response
+type EhloRequestCb func(timestamp time.Time, sessionId string, ehlo string) Response
+type StartTLSRequestCb func(timestamp time.Time, sessionId string, tlsString string) Response
+type AuthRequestCb func(timestamp time.Time, sessionId string, method string) Response
+type MailFromRequestCb func(timestamp time.Time, sessionId string, from string) Response
+type RcptToRequestCb func(timestamp time.Time, sessionId string, to string) Response
+type DataRequestCb func(timestamp time.Time, sessionId string) Response
+type DataLineRequestCb func(timestamp time.Time, sessionId string, line string) []string
+type CommitRequestCb func(timestamp time.Time, sessionId string) Response
 
 type direction struct {
 	linkConnect    LinkConnectCb
@@ -64,6 +117,18 @@ type direction struct {
 	filterResponse FilterResponseCb
 
 	timeout TimeoutCb
+
+	// SMTP_IN ONLY FOR NOW
+	filterConnect  ConnectRequestCb
+	filterHelo     HeloRequestCb
+	filterEhlo     EhloRequestCb
+	filterStartTLS StartTLSRequestCb
+	filterAuth     AuthRequestCb
+	filterMailFrom MailFromRequestCb
+	filterRcptTo   RcptToRequestCb
+	filterData     DataRequestCb
+	filterDataLine DataLineRequestCb
+	filterCommit   CommitRequestCb
 }
 
 func (d *direction) registeredReportEvents() []string {
@@ -210,52 +275,261 @@ func (d *direction) OnTimeout(cb TimeoutCb) {
 	d.timeout = cb
 }
 
+func (d *direction) ConnectRequest(cb ConnectRequestCb) {
+	d.filterConnect = cb
+}
+
+func (d *direction) HeloRequest(cb HeloRequestCb) {
+	d.filterHelo = cb
+}
+
+func (d *direction) EhloRequest(cb EhloRequestCb) {
+	d.filterEhlo = cb
+}
+
+func (d *direction) StartTLSRequest(cb StartTLSRequestCb) {
+	d.filterStartTLS = cb
+}
+
+func (d *direction) AuthRequest(cb AuthRequestCb) {
+	d.filterAuth = cb
+}
+
+func (d *direction) MailFromRequest(cb MailFromRequestCb) {
+	d.filterMailFrom = cb
+}
+
+func (d *direction) RcptToRequest(cb RcptToRequestCb) {
+	d.filterRcptTo = cb
+}
+
+func (d *direction) DataRequest(cb DataRequestCb) {
+	d.filterData = cb
+}
+
+func (d *direction) DataLineRequest(cb DataLineRequestCb) {
+	d.filterDataLine = cb
+}
+
+func (d *direction) CommitRequest(cb CommitRequestCb) {
+	d.filterCommit = cb
+}
+
 func handleReport(timestamp time.Time, event string, dir *direction, sessionId string, atoms []string) {
 	switch event {
 	case "link-connect":
+		if dir.linkConnect == nil {
+			return
+		}
 		dir.linkConnect(timestamp, sessionId, atoms[0], atoms[1], atoms[2], atoms[3])
+
 	case "link-disconnect":
+		if dir.linkDisconnect == nil {
+			return
+		}
 		dir.linkDisconnect(timestamp, sessionId)
+
 	case "link-greeting":
+		if dir.linkGreeting == nil {
+			return
+		}
 		dir.linkGreeting(timestamp, sessionId, atoms[0])
+
 	case "link-identify":
+		if dir.linkIdentify == nil {
+			return
+		}
 		dir.linkIdentify(timestamp, sessionId, atoms[0], atoms[1])
+
 	case "link-auth":
+		if dir.linkAuth == nil {
+			return
+		}
 		dir.linkAuth(timestamp, sessionId, atoms[0], atoms[1])
+
 	case "link-tls":
+		if dir.linkTLS == nil {
+			return
+		}
 		dir.linkTLS(timestamp, sessionId, atoms[0])
+
 	case "tx-reset":
+		if dir.txReset == nil {
+			return
+		}
 		dir.txReset(timestamp, sessionId, atoms[0])
+
 	case "tx-begin":
+		if dir.txBegin == nil {
+			return
+		}
 		dir.txBegin(timestamp, sessionId, atoms[0])
+
 	case "tx-mail":
+		if dir.txMail == nil {
+			return
+		}
 		dir.txMail(timestamp, sessionId, atoms[0], atoms[1], atoms[2])
+
 	case "tx-rcpt":
+		if dir.txRcpt == nil {
+			return
+		}
 		dir.txRcpt(timestamp, sessionId, atoms[0], atoms[1], atoms[2])
+
 	case "tx-envelope":
+		if dir.txEnvelope == nil {
+			return
+		}
 		dir.txEnvelope(timestamp, sessionId, atoms[0], atoms[1])
+
 	case "tx-data":
+		if dir.txData == nil {
+			return
+		}
 		dir.txData(timestamp, sessionId, atoms[0], atoms[1])
+
 	case "tx-commit":
+		if dir.txCommit == nil {
+			return
+		}
+
 		if size, err := strconv.Atoi(atoms[1]); err != nil {
 			log.Fatalf("Failed to convert size %s to int", atoms[1])
 		} else {
 			dir.txCommit(timestamp, sessionId, atoms[0], size)
 		}
+
 	case "tx-rollback":
+		if dir.txRollback == nil {
+			return
+		}
 		dir.txRollback(timestamp, sessionId, atoms[0])
+
 	case "protocol-client":
+		if dir.protocolClient == nil {
+			return
+		}
 		dir.protocolClient(timestamp, sessionId, atoms[0])
+
 	case "protocol-server":
+		if dir.protocolServer == nil {
+			return
+		}
 		dir.protocolServer(timestamp, sessionId, atoms[0])
+
 	case "filter-report":
+		if dir.filterReport == nil {
+			return
+		}
 		dir.filterReport(timestamp, sessionId, atoms[0], atoms[1], atoms[2])
+
 	case "filter-response":
+		if dir.filterResponse == nil {
+			return
+		}
 		dir.filterResponse(timestamp, sessionId, atoms[0], atoms[1], atoms[2:]...)
+
 	case "timeout":
+		if dir.timeout == nil {
+			return
+		}
 		dir.timeout(timestamp, sessionId)
+
 	default:
 		log.Fatalf("Unknown event %s", event)
+	}
+}
+
+func handleFilter(timestamp time.Time, event string, dir *direction, sessionId string, atoms []string) {
+	var res Response
+
+	opaqueValue := atoms[0]
+
+	atoms = atoms[1:]
+	switch event {
+	case "connect":
+		if dir.filterConnect == nil {
+			return
+		}
+		res = dir.filterConnect(timestamp, sessionId, atoms[0], atoms[1], atoms[2], atoms[3])
+
+	case "helo":
+		if dir.filterHelo == nil {
+			return
+		}
+		res = dir.filterHelo(timestamp, sessionId, atoms[0])
+
+	case "ehlo":
+		if dir.filterHelo == nil {
+			return
+		}
+		res = dir.filterEhlo(timestamp, sessionId, atoms[0])
+
+	case "starttls":
+		if dir.filterStartTLS == nil {
+			return
+		}
+		res = dir.filterStartTLS(timestamp, sessionId, atoms[0])
+
+	case "auth":
+		if dir.filterAuth == nil {
+			return
+		}
+		res = dir.filterAuth(timestamp, sessionId, atoms[0])
+
+	case "mail-from":
+		if dir.filterMailFrom == nil {
+			return
+		}
+		res = dir.filterMailFrom(timestamp, sessionId, atoms[0])
+
+	case "rcpt-to":
+		if dir.filterRcptTo == nil {
+			return
+		}
+		res = dir.filterRcptTo(timestamp, sessionId, atoms[0])
+
+	case "data":
+		if dir.filterData == nil {
+			return
+		}
+		res = dir.filterData(timestamp, sessionId)
+
+	case "data-line":
+		if dir.filterDataLine == nil {
+			return
+		}
+		// data line has special handling
+		lines := dir.filterDataLine(timestamp, sessionId, atoms[0])
+		for _, line := range lines {
+			fmt.Fprintf(os.Stdout, "filter-dataline|%s|%s|%s\n", sessionId, opaqueValue, line)
+		}
+		return
+
+	case "commit":
+		if dir.filterCommit == nil {
+			return
+		}
+		res = dir.filterCommit(timestamp, sessionId)
+
+	default:
+		log.Fatalf("Unknown event %s", event)
+	}
+
+	switch res := res.(type) {
+	case proceed:
+		fmt.Fprintf(os.Stdout, "filter-result|%s|%s|proceed\n", sessionId, opaqueValue)
+	case junk:
+		fmt.Fprintf(os.Stdout, "filter-result|%s|%s|junk\n", sessionId, opaqueValue)
+	case reject:
+		fmt.Fprintf(os.Stdout, "filter-result|%s|%s|reject|%s\n", sessionId, opaqueValue, res.errorMsg)
+	case disconnect:
+		fmt.Fprintf(os.Stdout, "filter-result|%s|%s|disconnect|%s\n", sessionId, opaqueValue, res.errorMsg)
+	case rewrite:
+		fmt.Fprintf(os.Stdout, "filter-result|%s|%s|rewrite|%s\n", sessionId, opaqueValue, res.parameter)
+	case report:
+		fmt.Fprintf(os.Stdout, "filter-result|%s|%s|report|%s\n", sessionId, opaqueValue, res.parameter)
 	}
 }
 
@@ -298,10 +572,8 @@ func Dispatch() {
 			log.Fatalf("Invalid input, not enough fields: %s", line)
 		}
 
+		// checked below
 		eventType := atoms[0]
-		if eventType != "report" {
-			log.Fatalf("Invalid event type: %s", eventType)
-		}
 
 		eventVersion := atoms[1]
 		if eventVersion != protocolVersion {
@@ -337,6 +609,8 @@ func Dispatch() {
 
 		if eventType == "report" {
 			handleReport(timestampToTime(timestamp), eventKind, eventDirectionPtr, eventSessionId, atoms)
+		} else if eventType == "filter" {
+			handleFilter(timestampToTime(timestamp), eventKind, eventDirectionPtr, eventSessionId, atoms)
 		} else {
 			log.Fatalf("Unknown command %s", eventType)
 		}
@@ -346,3 +620,4 @@ func Dispatch() {
 }
 
 //report|0.7|1576146008.006099|smtp-in|link-connect|7641df9771b4ed00|mail.openbsd.org|pass|199.185.178.25:33174|45.77.67.80:25
+//filter|0.7|1576146008.006099|smtp-in|connect|7641df9771b4ed00|1ef1c203cc576e5d|mail.openbsd.org|pass|199.185.178.25:33174|45.77.67.80:25

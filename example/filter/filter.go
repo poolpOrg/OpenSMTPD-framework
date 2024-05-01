@@ -84,6 +84,56 @@ func timeoutCb(timestamp time.Time, sessionId string) {
 	fmt.Fprintf(os.Stderr, "%s: %s: timeout\n", timestamp, sessionId)
 }
 
+func filterConnectCb(timestamp time.Time, sessionId string, rdns string, fcrdns string, src string, dest string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-connect: %s|%s|%s|%s\n", timestamp, sessionId, rdns, fcrdns, src, dest)
+	return filter.Proceed()
+}
+
+func filterHeloCb(timestamp time.Time, sessionId string, helo string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-helo: %s\n", timestamp, sessionId, helo)
+	return filter.Proceed()
+}
+
+func filterEhloCb(timestamp time.Time, sessionId string, helo string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-ehlo: %s\n", timestamp, sessionId, helo)
+	return filter.Proceed()
+}
+
+func filterStartTLSCb(timestamp time.Time, sessionId string, tls string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-starttls: %s\n", timestamp, sessionId, tls)
+	return filter.Proceed()
+}
+
+func filterAuthCb(timestamp time.Time, sessionId string, mechanism string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-auth: %s\n", timestamp, sessionId, mechanism)
+	return filter.Proceed()
+}
+
+func filterMailFromCb(timestamp time.Time, sessionId string, from string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-mail-from: %s\n", timestamp, sessionId, from)
+	return filter.Proceed()
+}
+
+func filterRcptToCb(timestamp time.Time, sessionId string, to string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-rcpt-to: %s\n", timestamp, sessionId, to)
+	return filter.Proceed()
+}
+
+func filterDataCb(timestamp time.Time, sessionId string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-data\n", timestamp, sessionId)
+	return filter.Proceed()
+}
+
+func filterCommitCb(timestamp time.Time, sessionId string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-commit\n", timestamp, sessionId)
+	return filter.Proceed()
+}
+
+func filterDataLineCb(timestamp time.Time, sessionId string, line string) []string {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-data-line: %s\n", timestamp, sessionId, line)
+	return []string{line}
+}
+
 func main() {
 	filter.Init()
 
@@ -109,6 +159,18 @@ func main() {
 	filter.SMTP_IN.OnFilterReport(filterReportCb)
 	filter.SMTP_IN.OnFilterResponse(filterResponseCb)
 	filter.SMTP_IN.OnTimeout(timeoutCb)
+
+	filter.SMTP_IN.ConnectRequest(filterConnectCb)
+	filter.SMTP_IN.HeloRequest(filterHeloCb)
+	filter.SMTP_IN.EhloRequest(filterEhloCb)
+	filter.SMTP_IN.StartTLSRequest(filterStartTLSCb)
+	filter.SMTP_IN.AuthRequest(filterAuthCb)
+	filter.SMTP_IN.MailFromRequest(filterMailFromCb)
+	filter.SMTP_IN.RcptToRequest(filterRcptToCb)
+	filter.SMTP_IN.DataRequest(filterDataCb)
+	filter.SMTP_IN.DataLineRequest(filterDataLineCb)
+
+	filter.SMTP_IN.CommitRequest(filterCommitCb)
 
 	filter.Dispatch()
 }
