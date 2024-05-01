@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"time"
 )
@@ -70,6 +71,22 @@ func main() {
 		log.Fatal(err)
 	}
 
+	errout, err := cmd.StderrPipe()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go func() {
+		scanner := bufio.NewScanner(errout)
+		for {
+			if !scanner.Scan() {
+				break
+			}
+			line := scanner.Text()
+			fmt.Fprintf(os.Stderr, "%s\n", line)
+		}
+	}()
+
 	if err := cmd.Start(); err != nil {
 		log.Fatal(err)
 	}
@@ -77,6 +94,8 @@ func main() {
 	fmt.Fprintf(in, "config|smtpd-version|%s\n", TABLE_SMTPD_VERSION)
 	fmt.Fprintf(in, "config|protocol|%s\n", TABLE_PROTOCOL_VERSION)
 	fmt.Fprintf(in, "config|ready\n")
+
+	fmt.Println("Waiting for services to register...")
 
 	scanner := bufio.NewScanner(out)
 	for {
