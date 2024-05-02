@@ -750,7 +750,7 @@ func Dispatch() {
 				log.Fatalf("Unknown direction %s", eventDirection)
 			}
 			direction = &SMTP_IN.filtering
-			fmt.Fprintf(os.Stderr, "atoms: %s\n", atoms)
+			//fmt.Fprintf(os.Stderr, "atoms: %s\n", atoms)
 			handleFilter(timestampToTime(timestamp), eventKind, direction, eventSessionId, atoms)
 		} else {
 			log.Fatalf("Unknown command %s", eventType)
