@@ -13,8 +13,7 @@ type SessionData struct {
 }
 
 func linkConnectCb(timestamp time.Time, session filter.Session, rdns string, fcrdns string, src net.Addr, dest net.Addr) {
-	x := session.Get()
-	print(x)
+	_ = session.Get()
 	fmt.Fprintf(os.Stderr, "%s: %s: link-connect: %s|%s|%s|%s\n", timestamp, session, rdns, fcrdns, src, dest)
 }
 
