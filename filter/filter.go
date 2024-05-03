@@ -8,8 +8,31 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
+
+type SessionData interface{}
+
+var sessions = make(map[Session]SessionData)
+var sessionsMtx sync.Mutex
+
+type Session struct {
+	sessionId string
+}
+
+func (s Session) String() string {
+	return s.sessionId
+}
+
+func (s Session) Get() SessionData {
+	sessionsMtx.Lock()
+	defer sessionsMtx.Unlock()
+	if v, ok := sessions[s]; ok {
+		return v
+	}
+	return nil
+}
 
 func timestampToTime(timestamp float64) time.Time {
 	sec := int64(timestamp)
@@ -84,48 +107,49 @@ func Report(parameter string) Response {
 	return report{parameter: parameter}
 }
 
-type LinkConnectCb func(timestamp time.Time, sessionId string, rdns string, fcrdns string, src net.Addr, dest net.Addr)
-type LinkGreetingCb func(timestamp time.Time, sessionId string, hostname string)
-type LinkIdentifyCb func(timestamp time.Time, sessionId string, method string, hostname string)
-type LinkTLSCb func(timestamp time.Time, sessionId string, tlsString string)
-type LinkAuthCb func(timestamp time.Time, sessionId string, result string, username string)
-type LinkDisconnectCb func(timestamp time.Time, sessionId string)
+type LinkConnectCb func(timestamp time.Time, sessionId Session, rdns string, fcrdns string, src net.Addr, dest net.Addr)
+type LinkGreetingCb func(timestamp time.Time, sessionId Session, hostname string)
+type LinkIdentifyCb func(timestamp time.Time, sessionId Session, method string, hostname string)
+type LinkTLSCb func(timestamp time.Time, sessionId Session, tlsString string)
+type LinkAuthCb func(timestamp time.Time, sessionId Session, result string, username string)
+type LinkDisconnectCb func(timestamp time.Time, sessionId Session)
 
-type TxResetCb func(timestamp time.Time, sessionId string, messageId string)
-type TxBeginCb func(timestamp time.Time, sessionId string, messageId string)
-type TxMailCb func(timestamp time.Time, sessionId string, messageId string, result string, from string)
-type TxRcptCb func(timestamp time.Time, sessionId string, messageId string, result string, to string)
-type TxEnvelopeCb func(timestamp time.Time, sessionId string, messageId string, envelopeId string)
-type TxDataCb func(timestamp time.Time, sessionId string, messageId string, result string)
-type TxCommitCb func(timestamp time.Time, sessionId string, messageId string, messageSize int)
-type TxRollbackCb func(timestamp time.Time, sessionId string, messageId string)
+type TxResetCb func(timestamp time.Time, sessionId Session, messageId string)
+type TxBeginCb func(timestamp time.Time, sessionId Session, messageId string)
+type TxMailCb func(timestamp time.Time, sessionId Session, messageId string, result string, from string)
+type TxRcptCb func(timestamp time.Time, sessionId Session, messageId string, result string, to string)
+type TxEnvelopeCb func(timestamp time.Time, sessionId Session, messageId string, envelopeId string)
+type TxDataCb func(timestamp time.Time, sessionId Session, messageId string, result string)
+type TxCommitCb func(timestamp time.Time, sessionId Session, messageId string, messageSize int)
+type TxRollbackCb func(timestamp time.Time, sessionId Session, messageId string)
 
-type ProtocolClientCb func(timestamp time.Time, sessionId string, command string)
-type ProtocolServerCb func(timestamp time.Time, sessionId string, response string)
+type ProtocolClientCb func(timestamp time.Time, sessionId Session, command string)
+type ProtocolServerCb func(timestamp time.Time, sessionId Session, response string)
 
-type FilterReportCb func(timestamp time.Time, sessionId string, filterKind string, name string, message string)
-type FilterResponseCb func(timestamp time.Time, sessionId string, phase string, response string, param ...string)
+type FilterReportCb func(timestamp time.Time, sessionId Session, filterKind string, name string, message string)
+type FilterResponseCb func(timestamp time.Time, sessionId Session, phase string, response string, param ...string)
 
-type TimeoutCb func(timestamp time.Time, sessionId string)
+type TimeoutCb func(timestamp time.Time, sessionId Session)
 
-type ConnectRequestCb func(timestamp time.Time, sessionId string, rdns string, src net.Addr) Response
-type HeloRequestCb func(timestamp time.Time, sessionId string, helo string) Response
-type EhloRequestCb func(timestamp time.Time, sessionId string, ehlo string) Response
-type StartTLSRequestCb func(timestamp time.Time, sessionId string, tlsString string) Response
-type AuthRequestCb func(timestamp time.Time, sessionId string, method string) Response
-type MailFromRequestCb func(timestamp time.Time, sessionId string, from string) Response
-type RcptToRequestCb func(timestamp time.Time, sessionId string, to string) Response
-type DataRequestCb func(timestamp time.Time, sessionId string) Response
-type DataLineRequestCb func(timestamp time.Time, sessionId string, line string) []string
-type CommitRequestCb func(timestamp time.Time, sessionId string) Response
+type ConnectRequestCb func(timestamp time.Time, sessionId Session, rdns string, src net.Addr) Response
+type HeloRequestCb func(timestamp time.Time, sessionId Session, helo string) Response
+type EhloRequestCb func(timestamp time.Time, sessionId Session, ehlo string) Response
+type StartTLSRequestCb func(timestamp time.Time, sessionId Session, tlsString string) Response
+type AuthRequestCb func(timestamp time.Time, sessionId Session, method string) Response
+type MailFromRequestCb func(timestamp time.Time, sessionId Session, from string) Response
+type RcptToRequestCb func(timestamp time.Time, sessionId Session, to string) Response
+type DataRequestCb func(timestamp time.Time, sessionId Session) Response
+type DataLineRequestCb func(timestamp time.Time, sessionId Session, line string) []string
+type CommitRequestCb func(timestamp time.Time, sessionId Session) Response
 
 type reporting struct {
-	linkConnect    LinkConnectCb
-	linkGreeting   LinkGreetingCb
-	linkIdentify   LinkIdentifyCb
-	linkTLS        LinkTLSCb
-	linkAuth       LinkAuthCb
-	linkDisconnect LinkDisconnectCb
+	sessionAllocator func() SessionData
+	linkConnect      LinkConnectCb
+	linkGreeting     LinkGreetingCb
+	linkIdentify     LinkIdentifyCb
+	linkTLS          LinkTLSCb
+	linkAuth         LinkAuthCb
+	linkDisconnect   LinkDisconnectCb
 
 	txReset    TxResetCb
 	txBegin    TxBeginCb
@@ -147,7 +171,7 @@ type reporting struct {
 
 func (r *reporting) reportEvents() []string {
 	ret := make([]string, 0)
-	if r.linkConnect != nil {
+	if r.linkConnect != nil || r.sessionAllocator != nil {
 		ret = append(ret, "link-connect")
 	}
 	if r.linkGreeting != nil {
@@ -162,7 +186,7 @@ func (r *reporting) reportEvents() []string {
 	if r.linkAuth != nil {
 		ret = append(ret, "link-auth")
 	}
-	if r.linkDisconnect != nil {
+	if r.linkDisconnect != nil || r.sessionAllocator != nil {
 		ret = append(ret, "link-disconnect")
 	}
 	if r.txReset != nil {
@@ -268,6 +292,10 @@ var SMTP_IN = &smtpIn{}
 var SMTP_OUT = &smtpOut{}
 
 func Init() {
+}
+
+func (r *reporting) SessionAllocator(cb func() SessionData) {
+	r.sessionAllocator = cb
 }
 
 func (r *reporting) OnLinkConnect(cb LinkConnectCb) {
@@ -386,12 +414,15 @@ func (f *filtering) CommitRequest(cb CommitRequestCb) {
 	f.filterCommit = cb
 }
 
-func handleReport(timestamp time.Time, event string, dir *reporting, sessionId string, atoms []string) {
+func handleReport(timestamp time.Time, event string, dir *reporting, sessionId Session, atoms []string) {
 
 	// XXX - need to ensure atoms is properly parsed (last field may be split multiple times)
 
 	switch event {
 	case "link-connect":
+		sessionsMtx.Lock()
+		sessions[sessionId] = dir.sessionAllocator()
+		sessionsMtx.Unlock()
 		if dir.linkConnect == nil {
 			return
 		}
@@ -414,6 +445,9 @@ func handleReport(timestamp time.Time, event string, dir *reporting, sessionId s
 			log.Fatalf("Invalid input, too many fields: %s", atoms)
 		}
 		dir.linkDisconnect(timestamp, sessionId)
+		sessionsMtx.Lock()
+		delete(sessions, sessionId)
+		sessionsMtx.Unlock()
 
 	case "link-greeting":
 		if dir.linkGreeting == nil {
@@ -530,7 +564,7 @@ func handleReport(timestamp time.Time, event string, dir *reporting, sessionId s
 	}
 }
 
-func handleFilter(timestamp time.Time, event string, dir *filtering, sessionId string, atoms []string) {
+func handleFilter(timestamp time.Time, event string, dir *filtering, sessionId Session, atoms []string) {
 	var res Response
 
 	// XXX - need to ensure atoms is properly parsed (last field may be split multiple times)
@@ -705,14 +739,14 @@ func Dispatch() {
 			} else if eventDirection == "smtp-out" {
 				direction = &SMTP_OUT.reporting
 			}
-			go handleReport(timestampToTime(timestamp), eventKind, direction, eventSessionId, atoms)
+			go handleReport(timestampToTime(timestamp), eventKind, direction, Session{eventSessionId}, atoms)
 		} else if eventType == "filter" {
 			var direction *filtering
 			if eventDirection != "smtp-in" {
 				log.Fatalf("Unknown direction %s", eventDirection)
 			}
 			direction = &SMTP_IN.filtering
-			go handleFilter(timestampToTime(timestamp), eventKind, direction, eventSessionId, atoms)
+			go handleFilter(timestampToTime(timestamp), eventKind, direction, Session{eventSessionId}, atoms)
 		} else {
 			log.Fatalf("Unknown command %s", eventType)
 		}

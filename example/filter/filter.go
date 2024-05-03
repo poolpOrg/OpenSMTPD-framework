@@ -9,134 +9,143 @@ import (
 	"github.com/poolpOrg/OpenSMTPD-framework/filter"
 )
 
-func linkConnectCb(timestamp time.Time, sessionId string, rdns string, fcrdns string, src net.Addr, dest net.Addr) {
-	fmt.Fprintf(os.Stderr, "%s: %s: link-connect: %s|%s|%s|%s\n", timestamp, sessionId, rdns, fcrdns, src, dest)
+type SessionData struct {
 }
 
-func linkDisconnectCb(timestamp time.Time, sessionId string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: link-disconnect\n", timestamp, sessionId)
+func linkConnectCb(timestamp time.Time, session filter.Session, rdns string, fcrdns string, src net.Addr, dest net.Addr) {
+	x := session.Get()
+	print(x)
+	fmt.Fprintf(os.Stderr, "%s: %s: link-connect: %s|%s|%s|%s\n", timestamp, session, rdns, fcrdns, src, dest)
 }
 
-func linkGreetingCb(timestamp time.Time, sessionId string, hostname string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: link-greeting: %s\n", timestamp, sessionId, hostname)
+func linkDisconnectCb(timestamp time.Time, session filter.Session) {
+	fmt.Fprintf(os.Stderr, "%s: %s: link-disconnect\n", timestamp, session)
 }
 
-func linkIdentifyCb(timestamp time.Time, sessionId string, method string, hostname string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: link-identify: %s|%s\n", timestamp, sessionId, method, hostname)
+func linkGreetingCb(timestamp time.Time, session filter.Session, hostname string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: link-greeting: %s\n", timestamp, session, hostname)
 }
 
-func linkAuthCb(timestamp time.Time, sessionId string, result string, username string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: link-auth: %s|%s\n", timestamp, sessionId, result, username)
+func linkIdentifyCb(timestamp time.Time, session filter.Session, method string, hostname string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: link-identify: %s|%s\n", timestamp, session, method, hostname)
 }
 
-func linkTLSCb(timestamp time.Time, sessionId string, tlsString string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: link-tls: %s\n", timestamp, sessionId, tlsString)
+func linkAuthCb(timestamp time.Time, session filter.Session, result string, username string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: link-auth: %s|%s\n", timestamp, session, result, username)
 }
 
-func txResetCb(timestamp time.Time, sessionId string, messageId string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: tx-reset: %s\n", timestamp, sessionId, messageId)
+func linkTLSCb(timestamp time.Time, session filter.Session, tlsString string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: link-tls: %s\n", timestamp, session, tlsString)
 }
 
-func txBeginCb(timestamp time.Time, sessionId string, messageId string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: tx-begin: %s\n", timestamp, sessionId, messageId)
+func txResetCb(timestamp time.Time, session filter.Session, messageId string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: tx-reset: %s\n", timestamp, session, messageId)
 }
 
-func txMailCb(timestamp time.Time, sessionId string, messageId string, result string, from string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: tx-mail: %s|%s|%s\n", timestamp, sessionId, messageId, result, from)
+func txBeginCb(timestamp time.Time, session filter.Session, messageId string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: tx-begin: %s\n", timestamp, session, messageId)
 }
 
-func txRcptCb(timestamp time.Time, sessionId string, messageId string, result string, to string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: tx-rcpt: %s|%s|%s\n", timestamp, sessionId, messageId, result, to)
+func txMailCb(timestamp time.Time, session filter.Session, messageId string, result string, from string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: tx-mail: %s|%s|%s\n", timestamp, session, messageId, result, from)
 }
 
-func txEnvelopeCb(timestamp time.Time, sessionId string, messageId string, envelopeId string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: tx-envelope: %s|%s\n", timestamp, sessionId, messageId, envelopeId)
+func txRcptCb(timestamp time.Time, session filter.Session, messageId string, result string, to string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: tx-rcpt: %s|%s|%s\n", timestamp, session, messageId, result, to)
 }
 
-func txDataCb(timestamp time.Time, sessionId string, messageId string, result string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: tx-data: %s|%s\n", timestamp, sessionId, messageId, result)
+func txEnvelopeCb(timestamp time.Time, session filter.Session, messageId string, envelopeId string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: tx-envelope: %s|%s\n", timestamp, session, messageId, envelopeId)
 }
 
-func txCommmitCb(timestamp time.Time, sessionId string, messageId string, messageSize int) {
-	fmt.Fprintf(os.Stderr, "%s: %s: tx-commit: %s|%d\n", timestamp, sessionId, messageId, messageSize)
+func txDataCb(timestamp time.Time, session filter.Session, messageId string, result string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: tx-data: %s|%s\n", timestamp, session, messageId, result)
 }
 
-func txRollbackCb(timestamp time.Time, sessionId string, messageId string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: tx-rollback: %s\n", timestamp, sessionId, messageId)
+func txCommmitCb(timestamp time.Time, session filter.Session, messageId string, messageSize int) {
+	fmt.Fprintf(os.Stderr, "%s: %s: tx-commit: %s|%d\n", timestamp, session, messageId, messageSize)
 }
 
-func protocolClientCb(timestamp time.Time, sessionId string, command string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: protocol-client: %s\n", timestamp, sessionId, command)
+func txRollbackCb(timestamp time.Time, session filter.Session, messageId string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: tx-rollback: %s\n", timestamp, session, messageId)
 }
 
-func protocolServerCb(timestamp time.Time, sessionId string, response string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: protocol-server: %s\n", timestamp, sessionId, response)
+func protocolClientCb(timestamp time.Time, session filter.Session, command string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: protocol-client: %s\n", timestamp, session, command)
 }
 
-func filterReportCb(timestamp time.Time, sessionId string, filterKind string, name string, message string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: filter-report: %s|%s|%s\n", timestamp, sessionId, filterKind, name, message)
+func protocolServerCb(timestamp time.Time, session filter.Session, response string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: protocol-server: %s\n", timestamp, session, response)
 }
 
-func filterResponseCb(timestamp time.Time, sessionId string, phase string, response string, param ...string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: filter-response: %s|%s|%v\n", timestamp, sessionId, phase, response, param)
+func filterReportCb(timestamp time.Time, session filter.Session, filterKind string, name string, message string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-report: %s|%s|%s\n", timestamp, session, filterKind, name, message)
 }
 
-func timeoutCb(timestamp time.Time, sessionId string) {
-	fmt.Fprintf(os.Stderr, "%s: %s: timeout\n", timestamp, sessionId)
+func filterResponseCb(timestamp time.Time, session filter.Session, phase string, response string, param ...string) {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-response: %s|%s|%v\n", timestamp, session, phase, response, param)
 }
 
-func filterConnectCb(timestamp time.Time, sessionId string, rdns string, src net.Addr) filter.Response {
-	fmt.Fprintf(os.Stderr, "%s: %s: filter-connect: %s|%s\n", timestamp, sessionId, rdns, src)
+func timeoutCb(timestamp time.Time, session filter.Session) {
+	fmt.Fprintf(os.Stderr, "%s: %s: timeout\n", timestamp, session)
+}
+
+func filterConnectCb(timestamp time.Time, session filter.Session, rdns string, src net.Addr) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-connect: %s|%s\n", timestamp, session, rdns, src)
 	return filter.Proceed()
 }
 
-func filterHeloCb(timestamp time.Time, sessionId string, helo string) filter.Response {
-	fmt.Fprintf(os.Stderr, "%s: %s: filter-helo: %s\n", timestamp, sessionId, helo)
+func filterHeloCb(timestamp time.Time, session filter.Session, helo string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-helo: %s\n", timestamp, session, helo)
 	return filter.Proceed()
 }
 
-func filterEhloCb(timestamp time.Time, sessionId string, helo string) filter.Response {
-	fmt.Fprintf(os.Stderr, "%s: %s: filter-ehlo: %s\n", timestamp, sessionId, helo)
+func filterEhloCb(timestamp time.Time, session filter.Session, helo string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-ehlo: %s\n", timestamp, session, helo)
 	return filter.Proceed()
 }
 
-func filterStartTLSCb(timestamp time.Time, sessionId string, tls string) filter.Response {
-	fmt.Fprintf(os.Stderr, "%s: %s: filter-starttls: %s\n", timestamp, sessionId, tls)
+func filterStartTLSCb(timestamp time.Time, session filter.Session, tls string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-starttls: %s\n", timestamp, session, tls)
 	return filter.Proceed()
 }
 
-func filterAuthCb(timestamp time.Time, sessionId string, mechanism string) filter.Response {
-	fmt.Fprintf(os.Stderr, "%s: %s: filter-auth: %s\n", timestamp, sessionId, mechanism)
+func filterAuthCb(timestamp time.Time, session filter.Session, mechanism string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-auth: %s\n", timestamp, session, mechanism)
 	return filter.Proceed()
 }
 
-func filterMailFromCb(timestamp time.Time, sessionId string, from string) filter.Response {
-	fmt.Fprintf(os.Stderr, "%s: %s: filter-mail-from: %s\n", timestamp, sessionId, from)
+func filterMailFromCb(timestamp time.Time, session filter.Session, from string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-mail-from: %s\n", timestamp, session, from)
 	return filter.Proceed()
 }
 
-func filterRcptToCb(timestamp time.Time, sessionId string, to string) filter.Response {
-	fmt.Fprintf(os.Stderr, "%s: %s: filter-rcpt-to: %s\n", timestamp, sessionId, to)
+func filterRcptToCb(timestamp time.Time, session filter.Session, to string) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-rcpt-to: %s\n", timestamp, session, to)
 	return filter.Proceed()
 }
 
-func filterDataCb(timestamp time.Time, sessionId string) filter.Response {
-	fmt.Fprintf(os.Stderr, "%s: %s: filter-data\n", timestamp, sessionId)
+func filterDataCb(timestamp time.Time, session filter.Session) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-data\n", timestamp, session)
 	return filter.Proceed()
 }
 
-func filterCommitCb(timestamp time.Time, sessionId string) filter.Response {
-	fmt.Fprintf(os.Stderr, "%s: %s: filter-commit\n", timestamp, sessionId)
+func filterCommitCb(timestamp time.Time, session filter.Session) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-commit\n", timestamp, session)
 	return filter.Proceed()
 }
 
-func filterDataLineCb(timestamp time.Time, sessionId string, line string) []string {
-	fmt.Fprintf(os.Stderr, "%s: %s: filter-data-line: %s\n", timestamp, sessionId, line)
+func filterDataLineCb(timestamp time.Time, session filter.Session, line string) []string {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-data-line: %s\n", timestamp, session, line)
 	return []string{line}
 }
 
 func main() {
 	filter.Init()
+
+	filter.SMTP_IN.SessionAllocator(func() filter.SessionData {
+		return &SessionData{}
+	})
 
 	filter.SMTP_IN.OnLinkConnect(linkConnectCb)
 	filter.SMTP_IN.OnLinkDisconnect(linkDisconnectCb)
