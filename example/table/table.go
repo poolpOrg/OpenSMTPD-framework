@@ -9,7 +9,7 @@ import (
 func main() {
 	table.Init()
 
-	table.OnUpdate(func() error {
+	table.OnUpdate(func(timestamp time.Time, table string) error {
 		return nil
 	})
 

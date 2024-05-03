@@ -25,23 +25,23 @@ import (
 func main() {
 	table.Init()
 
-    // called whenever `smtpctl update table` is called
-	table.OnUpdate(func() error {
+	// called whenever `smtpctl update table` is called
+	table.OnUpdate(func(timestamp time.Time, table string) error {
 		return nil
 	})
 
-    // check that a value exists for a given key
-	table.OnCheck(table.K_ALIAS, func(key string) (bool, error) {
+	// check that a value exists for a given key
+	table.OnCheck(table.K_ALIAS, func(timestamp time.Time, table string, key string) (bool, error) {
 		return true, nil
 	})
 
-    // returns the value associated to a given key or "" if it does not exist
-	table.OnLookup(table.K_ALIAS, func(key string) (string, error) {
+	// returns the value associated to a given key or "" if it does not exist
+	table.OnLookup(table.K_ALIAS, func(timestamp time.Time, table string, key string) (string, error) {
 		return "", nil
 	})
 
-    // fetch the next key or "" if it does not exist
-	table.OnFetch(table.K_ALIAS, func() (string, error) {
+	// fetch the next key or "" if it does not exist
+	table.OnFetch(table.K_ALIAS, func(timestamp time.Time, table string) (string, error) {
 		return "", nil
 	})
 

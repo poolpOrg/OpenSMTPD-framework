@@ -83,7 +83,7 @@ func serviceFromName(name string) Service {
 	return K_ERROR
 }
 
-type onUpdateCb func() error
+type onUpdateCb func(time.Time, string) error
 type onCheckCb func(time.Time, string, string) (bool, error)
 type onLookupCb func(time.Time, string, string) (string, error)
 type onFetchCb func(time.Time, string) (string, error)
@@ -198,7 +198,7 @@ func Dispatch() {
 				}
 				opaque := atoms[0]
 				go func() {
-					if err := onUpdate(); err != nil {
+					if err := onUpdate(timestampToTime(timestamp), tablename); err != nil {
 						fmt.Fprintf(os.Stdout, "update-result|%s|ko\n", opaque)
 					} else {
 						fmt.Fprintf(os.Stdout, "update-result|%s|ok\n", opaque)
