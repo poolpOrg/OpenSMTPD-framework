@@ -5,8 +5,16 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
+
+func timestampToTime(timestamp float64) time.Time {
+	sec := int64(timestamp)
+	nsec := int64((timestamp - float64(sec)) * 1e9)
+	return time.Unix(sec, nsec)
+}
 
 type Service int
 
@@ -76,9 +84,9 @@ func serviceFromName(name string) Service {
 }
 
 type onUpdateCb func() error
-type onCheckCb func(string) (bool, error)
-type onLookupCb func(string) (string, error)
-type onFetchCb func() (string, error)
+type onCheckCb func(time.Time, string, string) (bool, error)
+type onLookupCb func(time.Time, string, string) (string, error)
+type onFetchCb func(time.Time, string) (string, error)
 
 var onUpdate onUpdateCb
 var onCheckMap map[Service]onCheckCb = make(map[Service]onCheckCb)
@@ -157,6 +165,9 @@ func Dispatch() {
 		line := scanner.Text()
 
 		atoms := strings.Split(line, "|")
+		if len(atoms) < 5 {
+			log.Fatalf("not enouh fields to be a valid line: %s", line)
+		}
 
 		if atoms[0] != "table" {
 			log.Fatalf("Invalid command %s", atoms[0])
@@ -166,13 +177,14 @@ func Dispatch() {
 			log.Fatalf("Invalid protocol version %s", atoms[1])
 		}
 
-		timestamp := atoms[2]
+		timestamp, err := strconv.ParseFloat(atoms[2], 64)
+		if err != nil {
+			log.Fatalf("Failed to convert timestamp %s to float", atoms[2])
+		}
+
 		tablename := atoms[3]
 		operation := atoms[4]
 		atoms = atoms[5:]
-
-		_ = timestamp
-		_ = tablename
 
 		switch operation {
 		case "update":
@@ -196,7 +208,7 @@ func Dispatch() {
 				fmt.Fprintf(os.Stdout, "fetch-result|%s|error|no handler registered\n", opaque)
 			} else {
 				go func() {
-					exists, err := cb(key)
+					exists, err := cb(timestampToTime(timestamp), tablename, key)
 					if err != nil {
 						fmt.Fprintf(os.Stdout, "check-result|%s|%s|%s\n", opaque, "error", err)
 					} else if !exists {
@@ -215,7 +227,7 @@ func Dispatch() {
 				fmt.Fprintf(os.Stdout, "fetch-result|%s|error|no handler registered\n", opaque)
 			} else {
 				go func() {
-					result, err := cb()
+					result, err := cb(timestampToTime(timestamp), tablename)
 					if err != nil {
 						fmt.Fprintf(os.Stdout, "lookup-result|%s|%s|%s\n", opaque, "error", err)
 					} else if result == "" {
@@ -235,7 +247,7 @@ func Dispatch() {
 				fmt.Fprintf(os.Stdout, "fetch-result|%s|error|no handler registered\n", opaque)
 			} else {
 				go func() {
-					result, err := cb(key)
+					result, err := cb(timestampToTime(timestamp), tablename, key)
 					if err != nil {
 						fmt.Fprintf(os.Stdout, "lookup-result|%s|%s|%s\n", opaque, "error", err)
 					} else if result == "" {
