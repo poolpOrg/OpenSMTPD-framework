@@ -264,44 +264,6 @@ type smtpOut struct {
 	reporting
 }
 
-type direction struct {
-	linkConnect    LinkConnectCb
-	linkGreeting   LinkGreetingCb
-	linkIdentify   LinkIdentifyCb
-	linkTLS        LinkTLSCb
-	linkAuth       LinkAuthCb
-	linkDisconnect LinkDisconnectCb
-
-	txReset    TxResetCb
-	txBegin    TxBeginCb
-	txMail     TxMailCb
-	txRcpt     TxRcptCb
-	txEnvelope TxEnvelopeCb
-	txData     TxDataCb
-	txCommit   TxCommitCb
-	txRollback TxRollbackCb
-
-	protocolClient ProtocolClientCb
-	protocolServer ProtocolServerCb
-
-	filterReport   FilterReportCb
-	filterResponse FilterResponseCb
-
-	timeout TimeoutCb
-
-	// SMTP_IN ONLY FOR NOW
-	filterConnect  ConnectRequestCb
-	filterHelo     HeloRequestCb
-	filterEhlo     EhloRequestCb
-	filterStartTLS StartTLSRequestCb
-	filterAuth     AuthRequestCb
-	filterMailFrom MailFromRequestCb
-	filterRcptTo   RcptToRequestCb
-	filterData     DataRequestCb
-	filterDataLine DataLineRequestCb
-	filterCommit   CommitRequestCb
-}
-
 var SMTP_IN = &smtpIn{}
 var SMTP_OUT = &smtpOut{}
 
