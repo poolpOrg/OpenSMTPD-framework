@@ -743,27 +743,16 @@ func Dispatch() {
 			} else if eventDirection == "smtp-out" {
 				direction = &SMTP_OUT.reporting
 			}
-			handleReport(timestampToTime(timestamp), eventKind, direction, eventSessionId, atoms)
+			go handleReport(timestampToTime(timestamp), eventKind, direction, eventSessionId, atoms)
 		} else if eventType == "filter" {
 			var direction *filtering
 			if eventDirection != "smtp-in" {
 				log.Fatalf("Unknown direction %s", eventDirection)
 			}
 			direction = &SMTP_IN.filtering
-			//fmt.Fprintf(os.Stderr, "atoms: %s\n", atoms)
-			handleFilter(timestampToTime(timestamp), eventKind, direction, eventSessionId, atoms)
+			go handleFilter(timestampToTime(timestamp), eventKind, direction, eventSessionId, atoms)
 		} else {
 			log.Fatalf("Unknown command %s", eventType)
 		}
-
 	}
-
 }
-
-//report|0.7|1576146008.006099|smtp-in|link-connect|7641df9771b4ed00|mail.openbsd.org|pass|199.185.178.25:33174|45.77.67.80:25
-//filter|0.7|1576146008.006099|smtp-in|connect|7641df9771b4ed00|1ef1c203cc576e5d|mail.openbsd.org|pass|199.185.178.25:33174|45.77.67.80:25
-/*
-filter|0.7|1576146008.006099|smtp-in|data-line|7641df9771b4ed00|1ef1c203cc576e5d|line 1
-filter|0.7|1576146008.006103|smtp-in|data-line|7641df9771b4ed00|1ef1c203cc576e5d|line 2
-filter|0.7|1576146008.006105|smtp-in|data-line|7641df9771b4ed00|1ef1c203cc576e5d|.
-*/
