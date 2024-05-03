@@ -183,12 +183,19 @@ func Dispatch() {
 		}
 
 		tablename := atoms[3]
+		if tablename == "" {
+			log.Fatalf("Empty tablename")
+		}
+
 		operation := atoms[4]
 		atoms = atoms[5:]
 
 		switch operation {
 		case "update":
 			if onUpdate != nil {
+				if len(atoms) != 1 {
+					log.Fatalf("Invalid number of arguments for update")
+				}
 				opaque := atoms[0]
 				go func() {
 					if err := onUpdate(); err != nil {
@@ -200,6 +207,9 @@ func Dispatch() {
 			}
 
 		case "check":
+			if len(atoms) != 3 {
+				log.Fatalf("Invalid number of arguments for check")
+			}
 			service := serviceFromName(atoms[0])
 			opaque := atoms[1]
 			key := atoms[2]
@@ -220,6 +230,9 @@ func Dispatch() {
 			}
 
 		case "fetch":
+			if len(atoms) != 2 {
+				log.Fatalf("Invalid number of arguments for fetch")
+			}
 			service := serviceFromName(atoms[0])
 			opaque := atoms[1]
 
@@ -239,6 +252,9 @@ func Dispatch() {
 			}
 
 		case "lookup":
+			if len(atoms) != 3 {
+				log.Fatalf("Invalid number of arguments for lookup")
+			}
 			service := serviceFromName(atoms[0])
 			opaque := atoms[1]
 			key := atoms[2]
