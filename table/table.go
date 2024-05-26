@@ -29,6 +29,7 @@ const (
 	K_MAILADDR    Service = iota
 	K_ADDRNAME    Service = iota
 	K_MAILADDRMAP Service = iota
+	K_AUTH        Service = iota
 )
 
 func (s Service) String() string {
@@ -51,6 +52,8 @@ func (s Service) String() string {
 		return "addrname"
 	case K_MAILADDRMAP:
 		return "mailaddrmap"
+	case K_AUTH:
+		return "auth"
 	default:
 		log.Fatalf("Unknown service %d", s)
 	}
@@ -77,6 +80,8 @@ func serviceFromName(name string) Service {
 		return K_ADDRNAME
 	case "mailaddrmap":
 		return K_MAILADDRMAP
+	case "auth":
+		return K_AUTH
 	default:
 		log.Fatalf("Unknown service %s", name)
 	}
