@@ -141,6 +141,10 @@ type RcptToRequestCb func(timestamp time.Time, sessionId Session, to string) Res
 type DataRequestCb func(timestamp time.Time, sessionId Session) Response
 type DataLineRequestCb func(timestamp time.Time, sessionId Session, line string) []string
 type CommitRequestCb func(timestamp time.Time, sessionId Session) Response
+type NoopRequestCb func(timestamp time.Time, sessionId Session) Response
+type RsetRequestCb func(timestamp time.Time, sessionId Session) Response
+type HelpRequestCb func(timestamp time.Time, sessionId Session) Response
+type WizRequestCb func(timestamp time.Time, sessionId Session) Response
 
 type reporting struct {
 	sessionAllocator func() SessionData
@@ -242,6 +246,10 @@ type filtering struct {
 	filterData     DataRequestCb
 	filterDataLine DataLineRequestCb
 	filterCommit   CommitRequestCb
+	filterNoop     NoopRequestCb
+	filterRset     RsetRequestCb
+	filterHelp     HelpRequestCb
+	filterWiz      WizRequestCb
 }
 
 func (f *filtering) filterEvents() []string {
@@ -275,6 +283,18 @@ func (f *filtering) filterEvents() []string {
 	}
 	if f.filterCommit != nil {
 		ret = append(ret, "commit")
+	}
+	if f.filterNoop != nil {
+		ret = append(ret, "noop")
+	}
+	if f.filterRset != nil {
+		ret = append(ret, "rset")
+	}
+	if f.filterHelp != nil {
+		ret = append(ret, "help")
+	}
+	if f.filterWiz != nil {
+		ret = append(ret, "wiz")
 	}
 	return ret
 }
@@ -412,6 +432,22 @@ func (f *filtering) DataLineRequest(cb DataLineRequestCb) {
 
 func (f *filtering) CommitRequest(cb CommitRequestCb) {
 	f.filterCommit = cb
+}
+
+func (f *filtering) NoopRequest(cb NoopRequestCb) {
+	f.filterNoop = cb
+}
+
+func (f *filtering) RsetRequest(cb RsetRequestCb) {
+	f.filterRset = cb
+}
+
+func (f *filtering) HelpRequest(cb HelpRequestCb) {
+	f.filterHelp = cb
+}
+
+func (f *filtering) WizRequest(cb WizRequestCb) {
+	f.filterWiz = cb
 }
 
 func handleReport(timestamp time.Time, event string, dir *reporting, sessionId Session, atoms []string) {
@@ -639,6 +675,30 @@ func handleFilter(timestamp time.Time, event string, dir *filtering, sessionId S
 			return
 		}
 		res = dir.filterCommit(timestamp, sessionId)
+
+	case "noop":
+		if dir.filterNoop == nil {
+			return
+		}
+		res = dir.filterNoop(timestamp, sessionId)
+
+	case "rset":
+		if dir.filterRset == nil {
+			return
+		}
+		res = dir.filterRset(timestamp, sessionId)
+
+	case "help":
+		if dir.filterHelp == nil {
+			return
+		}
+		res = dir.filterHelp(timestamp, sessionId)
+
+	case "wiz":
+		if dir.filterWiz == nil {
+			return
+		}
+		res = dir.filterWiz(timestamp, sessionId)
 
 	default:
 		log.Fatalf("Unknown event %s", event)

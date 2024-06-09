@@ -139,6 +139,26 @@ func filterDataLineCb(timestamp time.Time, session filter.Session, line string) 
 	return []string{line}
 }
 
+func filterNoopCb(timestamp time.Time, session filter.Session) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-noop\n", timestamp, session)
+	return filter.Proceed()
+}
+
+func filterRsetCb(timestamp time.Time, session filter.Session) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-rset\n", timestamp, session)
+	return filter.Proceed()
+}
+
+func filterHelpCb(timestamp time.Time, session filter.Session) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-help\n", timestamp, session)
+	return filter.Proceed()
+}
+
+func filterWizCb(timestamp time.Time, session filter.Session) filter.Response {
+	fmt.Fprintf(os.Stderr, "%s: %s: filter-wiz\n", timestamp, session)
+	return filter.Proceed()
+}
+
 func main() {
 	filter.Init()
 
@@ -180,6 +200,11 @@ func main() {
 	filter.SMTP_IN.DataLineRequest(filterDataLineCb)
 
 	filter.SMTP_IN.CommitRequest(filterCommitCb)
+
+	filter.SMTP_IN.NoopRequest(filterNoopCb)
+	filter.SMTP_IN.RsetRequest(filterRsetCb)
+	filter.SMTP_IN.HelpRequest(filterHelpCb)
+	filter.SMTP_IN.WizRequest(filterWizCb)
 
 	filter.Dispatch()
 }
