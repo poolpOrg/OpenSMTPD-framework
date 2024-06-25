@@ -799,14 +799,14 @@ func Dispatch() {
 			} else if eventDirection == "smtp-out" {
 				direction = &SMTP_OUT.reporting
 			}
-			go handleReport(timestampToTime(timestamp), eventKind, direction, Session{eventSessionId}, atoms)
+			handleReport(timestampToTime(timestamp), eventKind, direction, Session{eventSessionId}, atoms)
 		} else if eventType == "filter" {
 			var direction *filtering
 			if eventDirection != "smtp-in" {
 				log.Fatalf("Unknown direction %s", eventDirection)
 			}
 			direction = &SMTP_IN.filtering
-			go handleFilter(timestampToTime(timestamp), eventKind, direction, Session{eventSessionId}, atoms)
+			handleFilter(timestampToTime(timestamp), eventKind, direction, Session{eventSessionId}, atoms)
 		} else {
 			log.Fatalf("Unknown command %s", eventType)
 		}
